@@ -30,7 +30,10 @@ function setting() {
  */
 function set(key, value) {
   let db_dummy = setting()
-  let db = db_dummy.getTags().find(tag => tag.startsWith(key))
+  let db = db_dummy.getTags().find(tag => {
+    let arr = tag.split(":").shift()
+    if (arr == key || tag == key) return tag
+  })
   if (db == undefined) {
     db_dummy.addTag(key + ":" + value)
   } else {
@@ -48,7 +51,7 @@ function get(key) {
   let db_dummy = setting()
   let db = db_dummy.getTags().find(tag => {
     let arr = tag.split(":").shift()
-    if( arr == key) return tag
+    if (arr == key || tag == key) return tag
   })
   if (db == undefined) return undefined
   let arr = db.split(":")
