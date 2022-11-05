@@ -23,7 +23,7 @@ function setting() {
 }
 
 /**
- * Create database
+ * Set or Create database
  * @param {string} key 
  * @param {string} value 
  */
@@ -60,7 +60,7 @@ function get(key) {
 }
 
 /**
- * Check if database have key
+ * Check if have database
  * @param {string} key 
  * @returns {boolean}
  */
