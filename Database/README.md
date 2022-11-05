@@ -12,5 +12,7 @@ Behaviour Pack Folder (root)
 └───scripts
     └───Modules
         └───Database.js / Database.ts
-    index.js
+        index.js
+    entities
+    └───database.json
 ```
