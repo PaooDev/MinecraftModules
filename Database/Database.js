@@ -5,10 +5,9 @@ import {
 } from "@minecraft/server";
 
 const overworld = world.getDimension("overworld")
-async function runCommand(command, dim) {
-  let dimension = dim || "overworld"
+async function runCommand(command) {
   try {
-    return { error: false, ...await world.getDimension(dimension).runCommandAsync(command) };
+    return { error: false, ...await overworld.runCommandAsync(command) };
   } catch (error) {
     return { error: true };
   }
