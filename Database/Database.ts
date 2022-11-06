@@ -5,20 +5,18 @@ import {
 } from "@minecraft/server";
 
 const overworld = world.getDimension("overworld")
-async function runCommand(command) {
-  try {
-    return { error: false, ...await overworld.runCommandAsync(command) };
-  } catch (error) {
-    return { error: true };
-  }
-}
+
+world.events.worldInitialize.subscribe(async data => {
+  await setting()
+})
 
 function setting() {
+  overworld.runCommandAsync("tickingarea add circle 0 0 0 4 db")
   let db_dummy = Array.from(overworld.getEntities({ type: "pao:database" }))[0]
-  if(db_dummy == undefined) {
-    db_dummy = overworld.spawnEntity("pao:database", new Location(0, 0, 0))
+  if (db_dummy == undefined) {
+    overworld.runCommandAsync("summon pao:database 0 0 0")
   }
-  runCommand("ticking area circle 0 0 0 4 db")
+  db_dummy = Array.from(overworld.getEntities({ type: "pao:database" }))[0]
   return db_dummy
 }
 
