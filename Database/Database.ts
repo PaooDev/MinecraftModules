@@ -59,7 +59,19 @@ function has(key : string) : boolean {
 /** Get all database */
 function gets() : string[] {
   let db_dummy = setting()
-  let db = db_dummy.getTags()
+  let data = db_dummy.getTags()
+  let db = []
+  for (const d of data) {
+    let splited = d.split(":")
+    let key = splited[0]
+    splited.shift()
+    let value = splited.join(":")
+    let dataFormat = {
+      key: key,
+      value: value
+    }
+    db.push(dataFormat)
+  }
   return db
 }
 
