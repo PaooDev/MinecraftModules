@@ -1,25 +1,12 @@
-import * as Database from "./Modules/Database.js"
+import { Database } from "./index.js";
 
-Database.set("key", "value")
-Database.get("key") // Output : value
-Database.set("key1", "value2")
+const testDatabase = new Database("test")
+testDatabase.set("key", "value")
+testDatabase.get("key") // will return "value"
 
-Database.gets() // Output : ["key:value", "key1:value2"]
+const moneyDatabase = new Database("money")
+moneyDatabase.set("PlayerName", 100)
+moneyDatabase.set("Paoeni", 1000000)
 
-// Example in Balance
-Database.set(`Balance_PlayerName`, 5000) // You can use playername to set balance
-Database.set(`Balance_Paoeni`, 1500)
-
-for (const player of world.getPlayers()) { // Getting all player money in server / world
-  let balance = Database.get(`Balance_${player.nameTag}`)
-  console.log(`${player.nameTag} : ${balance}`)
-}
-
-// If you want to get all player money (even the player is offline), you can use this
-let Balance_Database = Database.gets().filter(data => {
-  if (data.key.startsWith("Balance_") {
-    let playerName = data.key.substring("Balance_".length)
-    let playerMoney = data.value
-    console.log(`${playerName} : ${playerMoney}`) // Output : "PlayerName : 5000", "Paoeni : 1500"
-  }
-})
+moneyDatabase.get("PlayerName") // will return 100
+moneyDatabase.get("Paoeni") // will return 1000000
