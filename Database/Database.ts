@@ -1,99 +1,123 @@
-// Importing Minecraft Module
-import {
-  world,
-  Location
-} from "@minecraft/server";
-
-const overworld = world.getDimension("overworld")
-
-world.events.worldInitialize.subscribe(async data => {
-  await setting()
-})
-
-function setting() {
-  overworld.runCommandAsync("tickingarea add circle 0 0 0 4 db")
-  let db_dummy = Array.from(overworld.getEntities({ type: "pao:database" }))[0]
-  if (db_dummy == undefined) {
-    overworld.runCommandAsync("summon pao:database 0 0 0")
-  }
-  db_dummy = Array.from(overworld.getEntities({ type: "pao:database" }))[0]
-  return db_dummy
-}
-
-/** Set or Create database */
-function set(key : string, value : string) {
-  let db_dummy = setting()
-  let db = db_dummy.getTags().find(tag => {
-    let arr = tag.split(":").shift()
-    if (arr == key || tag == key) return tag
-  })
-  if (db == undefined) {
-    db_dummy.addTag(key + ":" + value)
-  } else {
-    remove(key)
-    db_dummy.addTag(key + ":" + value)
-  }
-}
-
-/** Get database value */
-function get(key : string) : string | undefined {
-  let db_dummy = setting()
-  let db = db_dummy.getTags().find(tag => {
-    let arr = tag.split(":").shift()
-    if (arr == key || tag == key) return tag
-  })
-  if (db == undefined) return undefined
-  let arr = db.split(":")
-  arr.shift()
-  db = arr.join(":")
-  return db
-}
-
-/** Check if have database */
-function has(key : string) : boolean {
-  let db = get(key)
-  if (db == undefined) return false;
-  return true
-}
-
-/** Get all database */
-function gets() : string[] {
-  let db_dummy = setting()
-  let data = db_dummy.getTags()
-  let db = []
-  for (const d of data) {
-    let splited = d.split(":")
-    let key = splited[0]
-    splited.shift()
-    let value = splited.join(":")
-    let dataFormat = {
-      key: key,
-      value: value
+import { world } from "@minecraft/server";
+const names = [];
+/**
+ * Database
+ */
+export class Database {
+    /**
+     * Create new Database
+     */
+    constructor(name: string) {
+        this.name = JSON.stringify(name).slice(1, -1).replaceAll(/"/g, '\\"');
+        this.initialize()
     }
-    db.push(dataFormat)
-  }
-  return db
-}
 
-/** Remove or Delete database */
-function remove(key : string) {
-  let db_dummy = setting()
-  let db = db_dummy.getTags().find(tag => {
-    let arr = tag.split(":").shift()
-    if (arr == key || tag == key) return tag
-  })
-  if (db != undefined) {
-    db_dummy.removeTag(db)
-  }
+    async initialize() {
+        this.data = new Map();
+        if (names.includes(this.name))
+            throw new Error(`You can't have 2 of the same databases`);
+        if (this.name.includes('"'))
+            throw new TypeError(`Database names can't include "!`);
+        if (this.name.length > 13 || this.name.length === 0)
+            throw new Error(`Database names can't be more than 13 characters long, and it can't be nothing!`);
+        names.push(this.name);
+        runCommand(`scoreboard objectives add "DB_${this.name}" dummy`);
+        world.scoreboard.getObjective(`DB_${this.name}`).getParticipants().forEach(e => this.data.set(e.displayName.split("_")[0].replaceAll(/\\"/g, '"'), JSON.parse(e.displayName.split("_").filter((v, i) => i > 0).join("_").replaceAll(/\\"/g, '"'))));
+    }
+    /**
+     * The length of the database
+     */
+    get length(): number {
+        return this.data.size;
+    }
+    /**
+     * Set a value from a key
+     * @param {string} key Key to set
+     * @param {any} value The value
+     */
+    set(key: string, value: any): void {
+        if (key.includes('_'))
+            throw new TypeError(`Database keys can't include "_"`);
+        if ((JSON.stringify(value).replaceAll(/"/g, '\\"').length + key.replaceAll(/"/g, '\\"').length + 1) > 32000)
+            throw new Error(`Database setter to long... somehow`);
+        if (this.data.has(key))
+            runCommand(`scoreboard players reset "${key.replaceAll(/"/g, '\\"')}_${JSON.stringify(this.data.get(key)).replaceAll(/"/g, '\\"')}" "DB_${this.name}"`);
+        runCommand(`scoreboard players set "${key.replaceAll(/"/g, '\\"')}_${JSON.stringify(value).replaceAll(/"/g, '\\"')}" "DB_${this.name}" 0`);
+        this.data.set(key, value);
+    }
+    /**
+     * Get a value from a key
+     * @param {string} key Key to get
+     * @returns {any} The value that was set for the key (or undefined)
+     */
+    get(key: string): any {
+        if (this.data.has(key))
+            return this.data.get(key);
+        return undefined;
+    }
+    /**
+     * Test for whether or not the database has the key
+     * @param {string} key Key to test for
+     * @returns {boolean} Whether or not the database has the key
+     */
+    has(key: string): boolean {
+        if (!this.data.has(key))
+            return false;
+        return true;
+    }
+    /**
+     * Delete a key from the database
+     * @param {string} key Key to delete from the database
+     */
+    delete(key: string): void {
+        if (!this.data.has(key))
+            return;
+        runCommand(`scoreboard players reset "${key.replaceAll(/"/g, '\\"')}_${JSON.stringify(this.data.get(key)).replaceAll(/"/g, '\\"')}" "DB_${this.name}"`);
+        this.data.delete(key);
+    }
+    /**
+     * Get an array of all keys in the database
+     * @returns {string[]} An array of all keys in the database
+     */
+    keys(): string[] {
+        return [...this.data.keys()];
+    }
+    /**
+     * Get an array of all values in the database
+     * @returns {any[]} An array of all values in the database
+     */
+    values(): any[] {
+        return [...this.data.values()];
+    }
+    /**
+     * Clears all values in the database
+     */
+    clear(): void {
+        runCommand(`scoreboard objectives remove "DB_${this.name}"`);
+        runCommand(`scoreboard objectives add "DB_${this.name}" dummy`);
+        this.data.clear();
+    }
+    /**
+     * Loop through all keys and values of the database
+     * @param {(key: string, value: any) => void} callback Code to run per loop
+     */
+    forEach(callback: (key: string, value: any) {
+        this.data.forEach((v, k) => callback(k, v));
+    }
+    *[Symbol.iterator](): IterableIterator<[string, any]> {
+        yield* this.data.entries();
+    }
 }
-
-/** Remove all database */
-function clear() {
-  let db_dummy = setting()
-  let db = db_dummy.getTags()
-  for (const data of db) {
-    remove(data)
-  }
+/**
+ * Run a command!
+ * @param {string} cmd Command to run
+ * @returns {{ error: boolean, data: any }} Whether or not the command errors, and command data
+ * @example runCommand(`give @a diamond`)
+ */
+async function runCommand(cmd) {
+    try {
+        await world.getDimension('overworld').runCommandAsync(cmd)
+    } catch(err) {
+        throw new Error(err)
+    }
 }
-
-export { set, get, gets, remove, has, clear }
